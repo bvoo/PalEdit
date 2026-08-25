@@ -303,7 +303,7 @@ class PalEntity:
 
         if not "Exp" in self._obj:
             self._obj['Exp'] = copy.deepcopy(EmptyExpObject)
-        # We don't store Exp yet
+        self._exp = self._obj['Exp']['value']
 
         self._nickname = ""
         if "NickName" in self._obj:
@@ -703,11 +703,18 @@ class PalEntity:
     def GetLevel(self):
         return self._level
 
+    def GetExp(self):
+        return self._exp
+
+    def SetExp(self, value):
+        value = max(0, min(2_147_483_647, value))
+        self._obj['Exp']['value'] = self._exp = value
+
     def SetLevel(self, value):
         # We need this check until we fix adding missing nodes
         if "Level" in self._obj and "Exp" in self._obj:
             self._obj['Level']['value']["value"] = self._level = value
-            self._obj['Exp']['value'] = xpthresholds[value - 1]
+            self.SetExp(xpthresholds[value - 1])
             self.CleanseAttacks()  # self.SetLevelMoves()
         else:
             print(f"[ERROR:] Failed to update level for: '{self.GetName()}'")

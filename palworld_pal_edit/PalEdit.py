@@ -763,6 +763,7 @@ class PalEdit():
 
         self.title.config(text=f"{pal.GetNickname()}")
         self.levelvar.set(str(pal.GetLevel()) if pal.GetLevel() > 0 else "?")
+        self.expvar.set(str(pal.GetExp()))
 
         self._fruit_all = [PalInfo.PalAttacks[aval] for aval in self.availableAttacks(pal)]
         self.fruitOptions['values'] = self._fruit_all
@@ -1532,6 +1533,20 @@ Do you want to use %s's DEFAULT Scaling (%s)?
             self.refresh(i)
         else:
             self.levelvar.set(str(lv))  # normalise (clamp / stray whitespace)
+
+    def setexpfromentry(self, *_):
+        """Set the selected pal's cumulative XP from the XP field."""
+        if not self.isPalSelected():
+            return
+        i = int(self.listdisplay.curselection()[0])
+        pal = self.FilteredPals()[i]
+        try:
+            exp = int(self.expvar.get())
+        except (ValueError, tk.TclError):
+            self.expvar.set(str(pal.GetExp()))
+            return
+        pal.SetExp(exp)
+        self.expvar.set(str(pal.GetExp()))
 
     # ------------------------------------------------------------------
     # Custom passive-skill presets (build named sets, stamp onto pals)
@@ -2837,9 +2852,8 @@ Do you want to use %s's DEFAULT Scaling (%s)?
         headerframe.grid_columnconfigure((0, 2), uniform="equal")
         headerframe.grid_columnconfigure(1, weight=1)
 
-        # "Lv." label + a typeable entry: type a level and press Enter (or click
-        # away) to set it directly; the ➖ / ➕ buttons still work and the field
-        # updates to match
+        # Type a level or cumulative XP and press Enter (or click away) to set
+        # it directly. The ➖ / ➕ buttons still update both fields.
         lvlframe = tk.Frame(headerframe, bg="darkgrey")
         lvlframe.grid(row=0, column=1, sticky="nsew")
         lvlframe.grid_rowconfigure(0, weight=1)
@@ -2854,8 +2868,18 @@ Do you want to use %s's DEFAULT Scaling (%s)?
         self.level.grid(row=0, column=2)
         self.level.bind("<Return>", self.setlevelfromentry)
         self.level.bind("<FocusOut>", self.setlevelfromentry)
+
+        explabel = tk.Label(lvlframe, text="XP", bg="darkgrey", font=(PalEditConfig.font, 10))
+        explabel.grid(row=1, column=1, sticky="e")
+        self.expvar = tk.StringVar()
+        self.exp = tk.Entry(lvlframe, textvariable=self.expvar, width=12, justify="center",
+                            font=(PalEditConfig.font, 10), relief="flat", bd=0,
+                            highlightthickness=0, bg="darkgrey", disabledbackground="darkgrey")
+        self.exp.grid(row=1, column=2, sticky="w")
+        self.exp.bind("<Return>", self.setexpfromentry)
+        self.exp.bind("<FocusOut>", self.setexpfromentry)
         # keep the owner-on-hover readout that the old level label had
-        for _w in (lvlframe, lvllabel, self.level):
+        for _w in (lvlframe, lvllabel, self.level, explabel, self.exp):
             _w.bind("<Enter>", lambda evt, num="owner": self.changetext(num))
             _w.bind("<Leave>", lambda evt, num=-1: self.changetext(num))
 
